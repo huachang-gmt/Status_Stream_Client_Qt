@@ -63,6 +63,24 @@ if (connect(sock,
     return false;
 }
 
+
+constexpr DWORD RECEIVE_TIMEOUT_MS = 3000U;
+
+if (setsockopt(
+        sock,
+        SOL_SOCKET,
+        SO_RCVTIMEO,
+        reinterpret_cast<const char*>(&RECEIVE_TIMEOUT_MS),
+        sizeof(RECEIVE_TIMEOUT_MS)) == SOCKET_ERROR)
+{
+    std::printf("[CLIENT] setsockopt(SO_RCVTIMEO) failed, error=%d\n",
+                WSAGetLastError());
+
+    closesocket(sock);
+    WSACleanup();
+    return false;
+}
+
 socket_ = static_cast<uintptr_t>(sock);
 
 receive_length_ = 0;
@@ -70,6 +88,7 @@ receive_length_ = 0;
 std::printf("[CLIENT] Connected\n");
 
 return true;
+
 
 }
 
