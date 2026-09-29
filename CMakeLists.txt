@@ -17,6 +17,12 @@ qt_add_executable(Status_Stream_Client_Qt
     include/tcp_worker.h
 )
 
+qt_add_resources(Status_Stream_Client_Qt "resources"
+    PREFIX "/"
+    FILES
+        Logo.png
+)
+
 target_include_directories(Status_Stream_Client_Qt
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include

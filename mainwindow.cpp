@@ -4,6 +4,7 @@
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QGridLayout>
+#include <QIcon>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -19,6 +20,7 @@ MainWindow::MainWindow(QWidget *parent)
     value_font.setBold(true);
 
     setWindowTitle("GMT Status Stream Client");
+    setWindowIcon(QIcon(":/Logo.png"));
     resize(760, 600);
 
     
@@ -48,7 +50,7 @@ MainWindow::MainWindow(QWidget *parent)
  
     QHBoxLayout *status_layout = new QHBoxLayout(); 
     QLabel *status_name_label = new QLabel("Status"); 
-    connection_status_value_label = new QLabel("● Connecting..."); 
+    connection_status_value_label = new QLabel("Connecting..."); 
     connection_status_value_label->setFont(value_font);
     connection_status_value_label->setAlignment(Qt::AlignRight | Qt::AlignVCenter); 
     status_name_label->setFixedWidth(LABEL_WIDTH); 
@@ -439,11 +441,69 @@ void MainWindow::updateStatusDisplay(const StatusData &status)
     current_status = status;
 
     connect_value_label->setText(status.connect ? "ON" : "OFF");
+    if (status.connect)
+    {
+        connect_value_label->setStyleSheet("color: green;");
+    }
+    else
+    {
+        connect_value_label->setStyleSheet("color: black;");
+    }
+
     voltage_value_label->setText(status.voltage_on ? "ON" : "OFF");
+    if (status.voltage_on)
+    {
+        voltage_value_label->setStyleSheet("color: green;");
+    }
+    else
+    {
+        voltage_value_label->setStyleSheet("color: black;");
+    }
+
     moving_value_label->setText(status.is_moving ? "ON" : "OFF");
+    if (status.is_moving)
+    {
+        moving_value_label->setStyleSheet("color: green;");
+    }
+    else
+    {
+        moving_value_label->setStyleSheet("color: black;");
+    }
+
     fa_value_label->setText(status.is_fa ? "ON" : "OFF");
+    if (status.is_fa)
+    {
+        fa_value_label->setStyleSheet("color: green;");
+    }
+    else
+    {
+        fa_value_label->setStyleSheet("color: black;");
+    }
+
     homing_value_label->setText(status.homing_end ? "ON" : "OFF");
+    if (status.homing_end)
+    {
+        homing_value_label->setStyleSheet("color: green;");
+    }
+    else
+    {
+        homing_value_label->setStyleSheet("color: black;");
+    }
+
     error_value_label->setText(status.error ? "ON" : "OFF");
+    if (status.error)
+    {
+        error_value_label->setStyleSheet("color: red;");
+    }
+    else
+    {
+        error_value_label->setStyleSheet("color: black;");
+    }
+
+
+
+
+
 
     ai_value_label[0]->setText(QString::number(status.ai_voltage[0], 'f', 3) + " V");
     ai_value_label[1]->setText("RAW " + QString::number(status.ai[1]));
@@ -472,10 +532,14 @@ void MainWindow::updatePacketStats(
 
     if (packet_loss == 0)
     {
+        loss_value_label->setStyleSheet("color: black;");
+        missing_value_label->setStyleSheet("color: black;");
         missing_value_label->setText("N/A");
     }
     else
     {
+        loss_value_label->setStyleSheet("color: red;");
+        missing_value_label->setStyleSheet("color: red;");
         missing_value_label->setText(
             QString::number(latest_missing_sequence));
     }
@@ -484,6 +548,23 @@ void MainWindow::updatePacketStats(
 void MainWindow::updateConnectionStatus(const QString &status)
 {
     qDebug() << "[MainWindow] Connection status:" << status;
-    
-    connection_status_value_label->setText("● " + status);
+
+    if (status == "Connected")
+    {
+        connection_status_value_label->setStyleSheet("color: green;");
+    }
+    else if (status == "Connecting...")
+    {
+        connection_status_value_label->setStyleSheet("color: orange;");
+    }
+    else if (status == "Connection Lost" || status == "Disconnected" || status == "Connection Failed")
+    {
+        connection_status_value_label->setStyleSheet("color: red;");
+    }
+    else
+    {
+        connection_status_value_label->setStyleSheet("color: black;");
+    }
+
+    connection_status_value_label->setText(status);
 }
