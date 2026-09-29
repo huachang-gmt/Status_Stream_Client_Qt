@@ -645,3 +645,399 @@ CM4/Core/Src/status_tcp_server.c
 
 #define STATUS_TCP_PERIOD_MS 200U
 ```
+# [2026-09-29] Portable 可攜式版本 (免安裝版本) 製作
+
+## 第一步 先在 Qt Creator 左側 專案 按下，然後出現 一些路徑，在最上方的 Active build configuration 從 Debug 改成 Release
+圖示 ：  
+
+![Qt_Portable_v1](images/Qt_Creator_Release.png)
+![Qt_Portable_v3](images/Qt_Creator_Releas_Files.png)
+---
+
+![Qt_Portable_v2](images/Finish_V1.png)
+
+
+# Portable 版本製作與驗證流程
+
+本專案提供 Portable 版本，目的為讓同事或客戶可以在未安裝 Qt、Qt Creator、CMake 或 Visual Studio 開發環境的 Windows 電腦上，直接執行 Status Stream Client。
+
+Portable 版本不需要安裝程式，使用時直接複製整個 Portable 資料夾即可。
+
+---
+
+## 1. 開發環境
+
+Portable 版本使用以下環境建立：
+
+* Windows 11 25H2
+* Qt 6.11.2
+* MSVC 2022 64-bit
+* CMake
+* Ninja
+* Qt Creator 20.0.1
+
+Qt 安裝位置：
+
+```text
+C:\Qt\6.11.2\msvc2022_64
+```
+
+其中：
+
+```text
+C:\Qt\6.11.2\msvc2022_64\bin\windeployqt.exe
+```
+
+為 Qt 官方提供的 Windows 部署工具。
+
+---
+
+## 2. Golden / Reference CLI 保持獨立
+
+本 Qt 專案與原本的 Golden / Reference CLI 專案完全分開。
+
+Golden / Reference CLI：
+
+```text
+D:\RaspberryPi\Status_Stream_Client
+```
+
+Qt 專案：
+
+```text
+D:\RaspberryPi\Status_Stream_Client_Qt
+```
+
+Portable 製作過程**不修改 Golden / Reference CLI 專案**。
+
+---
+
+## 3. 先建立 Release Build
+
+Portable 版本必須使用 Release 版本的 EXE。
+
+Qt Creator 中選擇：
+
+```text
+Desktop Qt 6.11.2 MSVC2022 64bit
+```
+
+並切換至：
+
+```text
+Release
+```
+
+然後執行：
+
+```text
+Build
+```
+
+確認 Release Build 成功。
+
+Release Build 目錄：
+
+```text
+D:\RaspberryPi\Status_Stream_Client_Qt\build\Desktop_Qt_6_11_2_MSVC2022_64bit_Release
+```
+
+確認其中已產生：
+
+```text
+Status_Stream_Client_Qt.exe
+```
+
+---
+
+## 4. 建立 Portable 資料夾
+
+在 Qt 專案根目錄建立：
+
+```text
+D:\RaspberryPi\Status_Stream_Client_Qt\Portable
+```
+
+將 Release Build 產生的：
+
+```text
+Status_Stream_Client_Qt.exe
+```
+
+複製到：
+
+```text
+D:\RaspberryPi\Status_Stream_Client_Qt\Portable\Status_Stream_Client_Qt.exe
+```
+
+注意：
+
+這是複製，不是移動。
+
+原本 Release Build 目錄內的 EXE 保留不變。
+
+---
+
+## 5. 使用 windeployqt 部署 Qt Runtime
+
+開啟 PowerShell。
+
+執行：
+
+```powershell
+& "C:\Qt\6.11.2\msvc2022_64\bin\windeployqt.exe" --release "D:\RaspberryPi\Status_Stream_Client_Qt\Portable\Status_Stream_Client_Qt.exe"
+```
+
+`windeployqt` 會分析 EXE 所需要的 Qt Runtime，並將必要的 DLL 與 Qt Plugins 複製到 Portable 資料夾。
+
+因此不需要手動猜測需要哪些 Qt DLL。
+
+---
+
+## 6. Portable 目錄
+
+執行 `windeployqt` 後，Portable 目錄會包含 EXE、Qt Runtime DLL 以及必要的 Plugins。
+
+例如：
+
+```text
+Portable\
+├─ Status_Stream_Client_Qt.exe
+├─ Qt6Core.dll
+├─ Qt6Gui.dll
+├─ Qt6Widgets.dll
+├─ platforms\
+│  └─ qwindows.dll
+└─ ...其他 windeployqt 自動部署的檔案
+```
+
+實際檔案數量與內容以 `windeployqt` 執行結果為準。
+
+**不要自行猜測或刪除 DLL。**
+
+---
+
+## 7. 確認主要 Qt Runtime
+
+可以使用 PowerShell 確認主要檔案存在：
+
+```powershell
+$portable = "D:\RaspberryPi\Status_Stream_Client_Qt\Portable"
+
+"=== Portable EXE ==="
+Test-Path "$portable\Status_Stream_Client_Qt.exe"
+
+"=== Qt6Core ==="
+Test-Path "$portable\Qt6Core.dll"
+
+"=== Qt6Gui ==="
+Test-Path "$portable\Qt6Gui.dll"
+
+"=== Qt6Widgets ==="
+Test-Path "$portable\Qt6Widgets.dll"
+
+"=== Windows Platform Plugin ==="
+Test-Path "$portable\platforms\qwindows.dll"
+```
+
+預期結果：
+
+```text
+True
+True
+True
+True
+True
+```
+
+---
+
+## 8. 確認 Portable 不依賴 C:\Qt 內的檔案
+
+可以檢查 Portable 資料夾：
+
+```powershell
+Get-ChildItem "D:\RaspberryPi\Status_Stream_Client_Qt\Portable" -Recurse -File |
+    Where-Object { $_.FullName -like "C:\Qt*" }
+```
+
+預期不應該有輸出。
+
+Portable 執行時應該使用自己資料夾內部署的 Qt Runtime，而不是依賴開發電腦上的 Qt 安裝目錄。
+
+---
+
+## 9. 開發電腦上的 Portable 測試
+
+直接執行：
+
+```powershell
+& "D:\RaspberryPi\Status_Stream_Client_Qt\Portable\Status_Stream_Client_Qt.exe"
+```
+
+確認：
+
+* 程式可以啟動
+* GMT Status Stream Client 視窗正常
+* Logo 正常
+* Connection 顯示正常
+* Packet 顯示正常
+* Controller 顯示正常
+* Analog Input 顯示正常
+* Position 顯示正常
+* Status Stream 資料正常更新
+* TCP Disconnect / Reconnect 行為正常
+
+---
+
+## 10. 最終乾淨電腦驗證
+
+開發電腦測試成功後，將**整個 Portable 資料夾**複製到另一台 Windows 電腦。
+
+測試電腦不需要安裝：
+
+* Qt
+* Qt Creator
+* CMake
+* Visual Studio 開發環境
+* Qt 開發套件
+
+也不需要設定 Qt PATH。
+
+直接執行：
+
+```text
+Portable\Status_Stream_Client_Qt.exe
+```
+
+確認程式可以正常啟動並執行完整功能。
+
+---
+
+## 11. Portable Release 判定
+
+只有在乾淨 Windows 電腦完成實際測試並 PASS 後，才將此 Portable 資料夾正式視為 Release Package。
+
+Release Package 的基本條件：
+
+```text
+Portable\
+└─ Status_Stream_Client_Qt.exe
+   + windeployqt 所部署的 Qt DLL / Plugins
+```
+
+不需要另外安裝 Qt。
+
+不需要另外安裝 Qt Creator。
+
+不需要另外安裝 CMake。
+
+不需要另外安裝 Visual Studio 開發環境。
+
+不需要額外加入 Qt DLL。
+
+---
+
+## 12. 發行時的原則
+
+Portable 發行時應該：
+
+1. 保留整個 Portable 資料夾。
+2. 不要只複製 EXE。
+3. 不要自行刪除 `windeployqt` 部署的 DLL 或 Plugins。
+4. 不要依賴開發電腦的 `C:\Qt\...`。
+5. 不修改 Golden / Reference CLI。
+6. 發行前應在乾淨 Windows 電腦實際測試一次。
+
+最終可以將整個：
+
+```text
+Portable
+```
+
+資料夾壓縮成 ZIP 提供給同事或客戶。
+
+例如：
+
+```text
+Status_Stream_Client_Qt_Portable.zip
+```
+
+使用者解壓縮後，直接執行：
+
+```text
+Status_Stream_Client_Qt.exe
+```
+
+即可。
+
+---
+
+## 13. Portable 與開發版本的關係
+
+Portable EXE 是從 Release Build 複製出來的獨立發行副本。
+
+原始 Release Build：
+
+```text
+D:\RaspberryPi\Status_Stream_Client_Qt\build\Desktop_Qt_6_11_2_MSVC2022_64bit_Release
+```
+
+Portable Release：
+
+```text
+D:\RaspberryPi\Status_Stream_Client_Qt\Portable
+```
+
+兩者應該分開保存。
+
+Portable 資料夾是給同事 / 客戶使用的發行版本，不應直接拿來進行日常開發。
+
+---
+
+## 14. 總結
+
+本專案 Portable 版本的製作流程為：
+
+```text
+Qt 專案
+   │
+   ├─ Release Build
+   │
+   ▼
+Release EXE
+   │
+   ├─ Copy
+   ▼
+Portable\Status_Stream_Client_Qt.exe
+   │
+   ├─ windeployqt --release
+   ▼
+Portable + Qt Runtime + Plugins
+   │
+   ├─ 開發電腦測試
+   │
+   ▼
+   ├─ 乾淨 Windows 電腦測試
+   │
+   ▼
+PASS
+   │
+   ▼
+Portable Release Package
+   │
+   └─ ZIP 發行
+```
+
+Portable 版本的核心概念是：
+
+> **程式與所需 Qt Runtime 一起攜帶，不要求使用者另外安裝 Qt 開發環境。**
+
+
+
+
+
+
+
+
+
