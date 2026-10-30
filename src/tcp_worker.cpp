@@ -28,7 +28,7 @@ void TcpWorker::Start()
         emit connectionStatusChanged("Connecting...");
 
         const bool connected =
-            tcp_client.Connect("192.168.137.10", 8888);
+            tcp_client.Connect("192.168.137.200", 8888); // 變更為 Raspberry Pi CM5 的 IP 的位址
 
         if (!connected)
         {

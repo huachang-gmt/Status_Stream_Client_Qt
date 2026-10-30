@@ -40,7 +40,7 @@ MainWindow::MainWindow(QWidget *parent)
  
     QHBoxLayout *server_layout = new QHBoxLayout(); 
     QLabel *server_name_label = new QLabel("Server"); 
-    QLabel *server_value_label = new QLabel("192.168.137.10:8888"); 
+    QLabel *server_value_label = new QLabel("192.168.137.200:8888"); // 變更為 Raspberry Pi CM5 IP 位址
     server_value_label->setFont(value_font);
     server_value_label->setAlignment(Qt::AlignRight | Qt::AlignVCenter); 
     server_name_label->setFixedWidth(LABEL_WIDTH); 
